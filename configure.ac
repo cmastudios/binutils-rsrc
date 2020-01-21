@@ -1009,6 +1009,9 @@ case "${target}" in
   moxie-*-*)
     noconfigdirs="$noconfigdirs"
     ;;
+  rsrc-*-*)
+    noconfigdirs="$noconfigdirs ${libgcj} gdb sim bfd binutils opcodes gas ld gprof"
+    ;;
   h8300*-*-*)
     noconfigdirs="$noconfigdirs target-libgloss"
     ;;
