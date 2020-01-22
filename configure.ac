@@ -1010,7 +1010,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs"
     ;;
   rsrc-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj} gdb sim binutils opcodes gas ld gprof"
+    noconfigdirs="$noconfigdirs ${libgcj} gdb sim binutils gas ld gprof"
     ;;
   h8300*-*-*)
     noconfigdirs="$noconfigdirs target-libgloss"
