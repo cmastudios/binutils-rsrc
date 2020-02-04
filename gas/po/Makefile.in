@@ -7,7 +7,7 @@
 # but which still want to provide support for the GNU gettext functionality.
 # Please note that the actual code is *not* freely available.
 
-PACKAGE = opcodes
+PACKAGE = gas
 VERSION = 2.33.1
 
 SHELL = /bin/sh
@@ -30,7 +30,7 @@ DESTDIR =
 
 INSTALL = /usr/bin/install -c
 INSTALL_DATA = /usr/bin/install -c -m 644
-MKINSTALLDIRS = $(top_builddir)/./../mkinstalldirs
+MKINSTALLDIRS = $(top_builddir)/../mkinstalldirs
 
 CC = gcc
 GENCAT = gencat
@@ -55,7 +55,7 @@ stamp-cat-id $(POFILES) $(GMOFILES) $(SOURCES)
 
 POTFILES = \
 
-CATALOGS =  da.gmo de.gmo es.gmo fi.gmo fr.gmo ga.gmo id.gmo it.gmo nl.gmo pt_BR.gmo ro.gmo sr.gmo sv.gmo tr.gmo uk.gmo vi.gmo zh_CN.gmo da.gmo de.gmo es.gmo fi.gmo fr.gmo ga.gmo id.gmo it.gmo nl.gmo pt_BR.gmo ro.gmo sr.gmo sv.gmo tr.gmo uk.gmo vi.gmo zh_CN.gmo
+CATALOGS =  es.gmo fi.gmo fr.gmo id.gmo ja.gmo ru.gmo rw.gmo sv.gmo tr.gmo uk.gmo zh_CN.gmo es.gmo fi.gmo fr.gmo id.gmo ja.gmo ru.gmo rw.gmo sv.gmo tr.gmo uk.gmo zh_CN.gmo
 CATOBJEXT = .gmo
 INSTOBJEXT = .mo
 
