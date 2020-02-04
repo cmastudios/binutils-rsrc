@@ -23,7 +23,7 @@ int print_insn_rsrc(bfd_vma addr, struct disassemble_info *info)
 	int status;
 	unsigned char opcode;
 
-	status = info->stream;
+	stream = info->stream;
 	fpr = info->fprintf_func;
 
 	if ((status = info->read_memory_func(addr, &opcode, 1, info)))
