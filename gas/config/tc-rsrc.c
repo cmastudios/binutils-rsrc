@@ -41,39 +41,42 @@ void md_begin(void)
 	bfd_set_arch_mach(stdoutput, TARGET_ARCH, 0);
 }
 
+// Parse args of the format ra, c2(rb) where (rb) is optional
+static int parse_args_displacement(rsrc_inst_t *output, char *str)
+{
+	int argc, ra, c2, rb;
+	ra = c2 = rb = 0;
+	argc = sscanf(str, " r%d,%d(r%d)", &ra, &c2, &rb);
+	output->form2.ra = ra;
+	output->form2.c2 = c2;
+	output->form2.rb = rb;
+
+	if (argc < 2) {
+		as_bad("Not enough arguments");
+		return -1;
+	}
+	return 0;
+}
+
 void md_assemble(char *str)
 {
 	char *op_start;
 	char *op_end;
+	char *arg_start;
+	char old_op_end;
 
 	rsrc_opc_info_t *opcode;
-	char *output;
-	int idx = 0;
-	char pend;
+	rsrc_inst_t *output;
 
-	int nlen = 0;
-	while (*str == ' ')
-	{
-		++str;
-	}
-
-	op_start = str;
-	for (op_end = str; *op_end && !is_end_of_line[*op_end & 0xff] && *op_end != ' '; ++op_end)
-	{
-		++nlen;
-	}
-
-	pend = *op_end;
-	*op_end = 0;
-
-	if (nlen == 0)
-	{
-		as_bad(_("can't find opcode "));
-		return;
-	}
+	// find the opcode
+	op_end = op_start = str;
+	while (*op_end && *op_end != ' ') // loop until space or end of line
+		++op_end;
+	old_op_end = *op_end;
+	*op_end = '\0'; // null terminate (required for hash_find)
 
 	opcode = (rsrc_opc_info_t *) hash_find(opcode_hash_control, op_start);
-	*op_end = pend;
+	*op_end = old_op_end; // restore
 
 	if (!opcode)
 	{
@@ -81,18 +84,23 @@ void md_assemble(char *str)
 		return;
 	}
 
-	output = frag_more(1);
-	output[idx++] = opcode->opcode;
+	output = frag_more(4);
+	output->data = 0;
+	output->form1.op = opcode->opcode;
 
-	while (ISSPACE(*op_end))
+	switch (opcode->opcode)
 	{
-		++op_end;
+		case RSRC_NOP:
+			break;
+		case RSRC_LA:
+			if (parse_args_displacement(output, op_end) < 0) return;
+			break;
+		default:
+			as_bad("what are ya doin in my swamp %d", opcode->opcode);
+			return;
 	}
 
-	if (*op_end != 0)
-	{
-		as_warn("extra stuff at end of line ignored");
-	}
+	output->data = RSRC_HTODL(output->data);
 
 	if (pending_reloc)
 	{
