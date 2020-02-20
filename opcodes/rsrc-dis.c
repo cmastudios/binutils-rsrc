@@ -13,10 +13,37 @@
 #include "dis-asm.h"
 #include <stdio.h>
 
-extern const rsrc_opc_info_t rsrc_opc_info[32];
+extern const rsrc_opc_info_t rsrc_opc_info[42];
 
 static fprintf_ftype fpr;
 static void *stream;
+
+static rsrc_opc_info_t get_inst(rsrc_inst_t raw)
+{
+	int i;
+	rsrc_opc_info_t info;
+	// premature optimization is the root of all evil
+	for (i = 0; i < 42; ++i)
+	{
+		info = rsrc_opc_info[i];
+		if (info.opcode == raw.form1.op)
+		{
+			if (info.opcode == RSRC_BR || info.opcode == RSRC_BRL)
+			{
+				if (info.cond == raw.formcond.cond)
+				{
+					return info;
+				}
+			}
+			else
+			{
+				return info;
+			}
+		}
+	}
+	info.opcode = 999;
+	return info;
+}
 
 int print_insn_rsrc(bfd_vma addr, struct disassemble_info *info)
 {
@@ -34,9 +61,9 @@ int print_insn_rsrc(bfd_vma addr, struct disassemble_info *info)
 	// convert endianness if necessary
 	instruction_raw.data = RSRC_HTODL(instruction_raw.data);
 
-	instruction = rsrc_opc_info[instruction_raw.form1.op];
+	instruction = get_inst(instruction_raw);
 
-	switch (instruction.opcode)
+	switch (instruction_raw.form1.op)
 	{
 		case RSRC_LD:
 		case RSRC_ST:

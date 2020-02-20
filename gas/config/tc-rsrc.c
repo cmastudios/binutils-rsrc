@@ -9,7 +9,7 @@
 #include "safe-ctype.h"
 #include "opcode/rsrc.h"
 
-extern const rsrc_opc_info_t rsrc_opc_info[32];
+extern const rsrc_opc_info_t rsrc_opc_info[42];
 
 const char comment_chars[] = "#";
 const char line_separator_chars[] = ";";
@@ -33,7 +33,7 @@ void md_begin(void)
 {
 	opcode_hash_control = hash_new();
 
-	for (int i = 0; i < 32; i++)
+	for (int i = 0; i < 42; i++)
 	{
 		hash_insert(opcode_hash_control, rsrc_opc_info[i].name, (char *) &rsrc_opc_info[i]);
 	}
@@ -54,6 +54,90 @@ static int parse_args_displacement(rsrc_inst_t *output, char *str)
 	if (argc < 2) {
 		as_bad("Not enough arguments");
 		return -1;
+	}
+	return 0;
+}
+
+static int parse_args_type(rsrc_inst_t *output, char *str, enum rsrc_itype type, int cond)
+{
+	int ra, rb, rc, c1, c2, c3;
+	ra = rb = rc = c1 = c2 = c3 = 0;
+	switch (type)
+	{
+		case RSRC_1_A_B_C2:
+			if (sscanf(str, " r%d,%d(r%d)", &ra, &c2, &rb) < 2) {
+				as_bad("Not enough arguments (expected ra, c2(rb))");
+				return -1;
+			}
+			output->form2.ra = ra;
+			output->form2.c2 = c2;
+			output->form2.rb = rb;
+			break;
+		case RSRC_2_A_C1:
+			if (sscanf(str, " r%d,%d", &ra, &c1) < 2) {
+				as_bad("Not enough arguments (expected ra, c1)");
+				return -1;
+			}
+			output->form1.ra = ra;
+			output->form1.c1 = c1;
+			break;
+		case RSRC_3_A_C:
+			if (sscanf(str, " r%d,r%d", &ra, &rc) < 2) {
+				as_bad("Not enough arguments (expected ra, rc)");
+				return -1;
+			}
+			output->formcond.ra = ra;
+			output->formcond.rc = rc;
+			break;
+		case RSRC_4_B_C_COND: // assume caller processes the condition
+			output->formcond.cond = cond;
+			if (sscanf(str, " r%d,r%d", &rb, &rc) < 0) {
+				as_bad("Not enough arguments (expected rb, rc or rb or nothing)");
+				return -1;
+			}
+			output->formcond.rb = rb;
+			output->formcond.rc = rc;
+			break;
+		case RSRC_5_A_B_C_COND: // assume caller processes the condition
+			output->formcond.cond = cond;
+			if (sscanf(str, " r%d,r%d,r%d", &ra, &rb, &rc) < 1) {
+				as_bad("Not enough arguments (expected ra, rb, rc or ra, rb or even ra)");
+				return -1;
+			}
+			output->formcond.ra = ra;
+			output->formcond.rb = rb;
+			output->formcond.rc = rc;
+			break;
+		case RSRC_6_A_B_C:
+			if (sscanf(str, " r%d,r%d,r%d", &ra, &rb, &rc) < 3) {
+				as_bad("Not enough arguments (expected ra, rb, rc)");
+				return -1;
+			}
+			output->formcond.ra = ra;
+			output->formcond.rb = rb;
+			output->formcond.rc = rc;
+			break;
+		case RSRC_7_A_B_C_COUNT: // this one is funny as the third param could either be a register or immediate
+			if (sscanf(str, " r%d,r%d,r%d", &ra, &rb, &rc) < 3) {
+				// try a constant instead
+				if (sscanf(str, " r%d,r%d,%d", &ra, &rb, &c3) < 3) {
+					as_bad("Not enough arguments (expected ra, rb, rc or ra, rb, c3)");
+					return -1;
+				}
+				output->formcount.count = c3;
+			}
+			else
+			{
+				output->formcount.rc = rc;
+			}
+			output->formcount.ra = ra;
+			output->formcount.rb = rb;
+			break;
+		case RSRC_8:
+			break;
+		default:
+			as_bad("Who are you");
+			break;
 	}
 	return 0;
 }
@@ -88,17 +172,8 @@ void md_assemble(char *str)
 	output->data = 0;
 	output->form1.op = opcode->opcode;
 
-	switch (opcode->opcode)
-	{
-		case RSRC_NOP:
-			break;
-		case RSRC_LA:
-			if (parse_args_displacement(output, op_end) < 0) return;
-			break;
-		default:
-			as_bad("what are ya doin in my swamp %d", opcode->opcode);
-			return;
-	}
+	if (parse_args_type(output, op_end, opcode->itype, opcode->cond) < 0) return;
+
 
 	output->data = RSRC_HTODL(output->data);
 

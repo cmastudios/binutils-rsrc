@@ -104,6 +104,7 @@ typedef struct rsrc_opc_info_t
 	unsigned char opcode;
 	const char * name;
 	enum rsrc_itype itype;
+	int cond;
 } rsrc_opc_info_t;
 
 #define RSRC_NOP 0
