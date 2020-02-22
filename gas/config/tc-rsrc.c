@@ -58,28 +58,58 @@ static int parse_args_displacement(rsrc_inst_t *output, char *str)
 	return 0;
 }
 
+static char * parse_exp_save_ilp(char *s, expressionS *op)
+{
+	char *save = input_line_pointer;
+	input_line_pointer = s;
+	expression(op);
+	s = input_line_pointer;
+	input_line_pointer = save;
+	return s;
+}
+
 static int parse_args_type(rsrc_inst_t *output, char *str, enum rsrc_itype type, int cond)
 {
 	int ra, rb, rc, c1, c2, c3;
+	expressionS arg;
 	ra = rb = rc = c1 = c2 = c3 = 0;
 	switch (type)
 	{
 		case RSRC_1_A_B_C2:
-			if (sscanf(str, " r%d,%d(r%d)", &ra, &c2, &rb) < 2) {
+			if (sscanf(str, " r%d", &ra) < 1) {
 				as_bad("Not enough arguments (expected ra, c2(rb))");
 				return -1;
 			}
 			output->form2.ra = ra;
-			output->form2.c2 = c2;
-			output->form2.rb = rb;
+			str = strchr(str, ',');
+			if (!str) {
+				return -1;
+			}
+			if (strchr(str, 'r')) { // displacement-based
+				if (sscanf(str + 1, "%d(r%d)", &c2, &rb) < 2) {
+					as_bad("Not enough arguments (expected ra, c2(rb))");
+					return -1;
+				}
+				output->form2.c2 = c2;
+				output->form2.rb = rb;
+			} else { // fixup just in case
+				str = parse_exp_save_ilp(str + 1, &arg);
+				fix_new_exp(frag_now, ((char*)output - frag_now->fr_literal), 4, &arg, FALSE, BFD_RELOC_32);
+			}
 			break;
-		case RSRC_2_A_C1:
-			if (sscanf(str, " r%d,%d", &ra, &c1) < 2) {
+		case RSRC_2_A_C1: // read register directly and then forward to fixup
+			if (sscanf(str, " r%d", &ra) < 1) {
 				as_bad("Not enough arguments (expected ra, c1)");
 				return -1;
 			}
 			output->form1.ra = ra;
-			output->form1.c1 = c1;
+			str = strchr(str, ',');
+			if (!str) {
+				as_bad("Not enough arguments (expected ra, c1) 2");
+				return -1;
+			}
+			str = parse_exp_save_ilp(str + 1, &arg);
+			fix_new_exp(frag_now, ((char*)output - frag_now->fr_literal), 4, &arg, TRUE, BFD_RELOC_32_PCREL);
 			break;
 		case RSRC_3_A_C:
 			if (sscanf(str, " r%d,r%d", &ra, &rc) < 2) {
@@ -239,8 +269,44 @@ void md_show_usage(FILE *stream ATTRIBUTE_UNUSED)
 {
 }
 
-void md_apply_fix(fixS *fixP ATTRIBUTE_UNUSED, valueT *valP ATTRIBUTE_UNUSED, segT seg ATTRIBUTE_UNUSED)
+void md_apply_fix(fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
 {
+	//printf("Time to make america great again\n");
+
+	char *buf = fixP->fx_where + fixP->fx_frag->fr_literal;
+	long val = *valP;
+	long max, min;
+	int shift;
+
+	max = min = 0;
+	shift = 0;
+	switch (fixP->fx_r_type) {
+	case BFD_RELOC_32:
+		val &= 0x1FFFF; // TODO try to get the actual fix mask from somewhere, maybe fixP
+		break;
+	case BFD_RELOC_32_PCREL:
+		val &= 0x3FFFFF;
+		break;
+	default:
+		abort();
+	}
+	switch (fixP->fx_r_type) {
+	case BFD_RELOC_32:
+	case BFD_RELOC_32_PCREL:
+		*(buf++) |= val >> 24;
+		*(buf++) |= val >> 16;
+		*(buf++) |= val >> 8;
+		*(buf++) |= val >> 0;
+		break;
+	default:
+		abort();
+	}
+
+	if (max != 0 && (val < min || val > max))
+		as_bad_where(fixP->fx_file, fixP->fx_line, _("offset out of range"));
+
+	if (fixP->fx_addsy == NULL && fixP->fx_pcrel == 0)
+		fixP->fx_done = 1;
 }
 
 void md_number_to_chars(char *ptr, valueT use, int nbytes)
@@ -274,4 +340,19 @@ arelent * tc_gen_reloc(asection *section ATTRIBUTE_UNUSED, fixS *fixp)
 	return rel;
 }
 
+long md_pcrel_from(fixS *fixP)
+{
+	valueT addr = fixP->fx_where + fixP->fx_frag->fr_address;
 
+	//fprintf(stderr, "MDPCRELFROM 0x%d\n", fixP->fx_r_type);
+
+	switch (fixP->fx_r_type)
+	{
+		case BFD_RELOC_32:
+		case BFD_RELOC_32_PCREL:
+			return addr;
+		default:
+			abort();
+			return addr;
+	}
+}

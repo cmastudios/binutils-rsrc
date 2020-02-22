@@ -24,11 +24,11 @@ const rsrc_opc_info_t rsrc_opc_info[42] = {
 	{8, "brpl", RSRC_4_B_C_COND, 4},
 	{8, "brmi", RSRC_4_B_C_COND, 5},
 	{9, "brl", RSRC_5_A_B_C_COND, 1},
-	{8, "brlnv", RSRC_5_A_B_C_COND, 0},
-	{8, "brlzr", RSRC_5_A_B_C_COND, 2},
-	{8, "brlnz", RSRC_5_A_B_C_COND, 3},
-	{8, "brlpl", RSRC_5_A_B_C_COND, 4},
-	{8, "brlmi", RSRC_5_A_B_C_COND, 5},
+	{9, "brlnv", RSRC_5_A_B_C_COND, 0},
+	{9, "brlzr", RSRC_5_A_B_C_COND, 2},
+	{9, "brlnz", RSRC_5_A_B_C_COND, 3},
+	{9, "brlpl", RSRC_5_A_B_C_COND, 4},
+	{9, "brlmi", RSRC_5_A_B_C_COND, 5},
 	{10, "unused", RSRC_8, 0},
 	{11, "unused", RSRC_8, 0},
 	{12, "add", RSRC_6_A_B_C, 0},
@@ -50,5 +50,5 @@ const rsrc_opc_info_t rsrc_opc_info[42] = {
 	{28, "shl", RSRC_7_A_B_C_COUNT, 0},
 	{29, "shc", RSRC_7_A_B_C_COUNT, 0},
 	{30, "unused", RSRC_8, 0},
-	{31, "unused", RSRC_8, 0}
+	{31, "stop", RSRC_8, 0}
 };
